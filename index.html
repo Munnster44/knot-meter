@@ -1,0 +1,495 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GPS Rotary Speed Dial (Knots)</title>
+  <meta name="theme-color" content="#0b3d91" />
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:#111c2f;
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+      --accent:#38bdf8;
+      --border:rgba(148,163,184,.22);
+      --good:#22c55e;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+      --shadow:0 12px 30px rgba(0,0,0,.35);
+    }
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:radial-gradient(1200px 800px at 20% 0%, #0e1a33 0%, var(--bg) 55%);
+      color:var(--text);
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding:16px;
+    }
+    .app{
+      width:min(560px, 100%);
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid var(--border);
+      border-radius:20px;
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    header{
+      padding:14px 16px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom:1px solid var(--border);
+      background:rgba(0,0,0,.10);
+    }
+    header .title{
+      display:flex; gap:10px; align-items:center;
+      font-weight:700;
+      letter-spacing:.2px;
+    }
+    .badge{
+      font-size:12px;
+      padding:4px 8px;
+      border-radius:999px;
+      border:1px solid var(--border);
+      color:var(--muted);
+    }
+    main{padding:16px}
+    .dialWrap{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:18px;
+      padding:16px;
+    }
+
+    /* SVG Dial block */
+    .dial{
+      width:min(380px, 100%);
+      margin:0 auto;
+      position:relative;
+      aspect-ratio:1/1;
+      border-radius:50%;
+      background:
+        radial-gradient(circle at 50% 45%, rgba(255,255,255,.07) 0%, rgba(255,255,255,.02) 48%, rgba(0,0,0,.25) 100%);
+      border:1px solid rgba(255,255,255,.08);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.35);
+      overflow:hidden;
+    }
+    .dial svg{
+      width:100%;
+      height:100%;
+      display:block;
+    }
+    .needle{
+      stroke: var(--accent);
+      stroke-width: 4.5;
+      stroke-linecap: round;
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,.35));
+    }
+    .needleGlow{
+      stroke: rgba(56,189,248,.28);
+      stroke-width: 10;
+      stroke-linecap: round;
+      filter: blur(1px);
+    }
+    .hubOuter{
+      fill: rgba(229,231,235,.92);
+      filter: drop-shadow(0 10px 18px rgba(0,0,0,.35));
+    }
+    .hubInner{
+      fill: rgba(17,28,47,.92);
+      stroke: rgba(255,255,255,.18);
+      stroke-width: 1;
+    }
+    .tickMinor{ stroke: rgba(148,163,184,.45); stroke-width:2; stroke-linecap:round; }
+    .tickMajor{ stroke: rgba(229,231,235,.75); stroke-width:3; stroke-linecap:round; }
+    .label{
+      fill: rgba(229,231,235,.78);
+      font-size: 12px;
+      font-weight: 600;
+      text-anchor: middle;
+      dominant-baseline: middle;
+      user-select:none;
+    }
+
+    .readout{margin-top:12px;text-align:center;}
+    .speed{font-size:52px;font-weight:800;letter-spacing:.5px;line-height:1.05;}
+    .unit{font-size:16px;color:var(--muted);margin-top:4px;}
+    .sub{
+      margin-top:10px;
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      justify-content:center;
+      color:var(--muted);
+      font-size:12px;
+    }
+    .pill{
+      padding:6px 10px;
+      border:1px solid var(--border);
+      border-radius:999px;
+      background:rgba(0,0,0,.12);
+    }
+    .controls{
+      display:flex;
+      gap:10px;
+      margin-top:14px;
+      flex-wrap:wrap;
+      justify-content:center;
+    }
+    button{
+      appearance:none;
+      border:1px solid var(--border);
+      background:rgba(0,0,0,.18);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius:12px;
+      font-weight:700;
+      letter-spacing:.2px;
+      cursor:pointer;
+      min-width:130px;
+    }
+    button:hover{border-color:rgba(56,189,248,.55)}
+    button.primary{
+      background:linear-gradient(180deg, rgba(56,189,248,.28), rgba(56,189,248,.14));
+      border-color:rgba(56,189,248,.55);
+    }
+    button.danger{
+      border-color:rgba(239,68,68,.5);
+      background:linear-gradient(180deg, rgba(239,68,68,.2), rgba(239,68,68,.08));
+    }
+
+    .statusRow{
+      margin-top:14px;
+      padding:12px;
+      border:1px dashed rgba(148,163,184,.35);
+      border-radius:14px;
+      color:var(--muted);
+      font-size:12px;
+      background:rgba(0,0,0,.10);
+    }
+    .ok{color:var(--good)}
+    .warn{color:var(--warn)}
+    .bad{color:var(--bad)}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;}
+    .note{margin-top:12px;font-size:12px;color:var(--muted);line-height:1.35;text-align:center;}
+  </style>
+</head>
+
+<body>
+  <div class="app">
+    <header>
+      <div class="title">
+        <span>GPS Rotary Speed Dial</span>
+        <span class="badge" id="modeBadge">Mode: STOPPED</span>
+      </div>
+      <span class="badge mono">v1.1 (SVG Dial)</span>
+    </header>
+
+    <main>
+      <div class="dialWrap">
+        <div class="dial" aria-label="Speed dial">
+          <svg viewBox="0 0 200 200" role="img" aria-label="Speed dial">
+            <!-- Ticks and labels -->
+            <g id="dialTicks"></g>
+
+            <!-- Needle (rotated by JS around 100,100) -->
+            <g id="needleGroup" transform="rotate(-140 100 100)">
+              <line class="needleGlow" x1="100" y1="112" x2="100" y2="38"></line>
+              <line class="needle" x1="100" y1="112" x2="100" y2="38"></line>
+            </g>
+
+            <!-- Hub -->
+            <circle class="hubOuter" cx="100" cy="100" r="8"></circle>
+            <circle class="hubInner" cx="100" cy="100" r="4.3"></circle>
+          </svg>
+        </div>
+
+        <div class="readout">
+          <div class="speed" id="speedVal">0.0</div>
+          <div class="unit" id="unitLabel">knots</div>
+          <div class="sub">
+            <div class="pill">Accuracy: <span id="accVal">—</span></div>
+            <div class="pill">Fix: <span id="fixVal">—</span></div>
+            <div class="pill">Source: <span id="srcVal">—</span></div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="primary" id="btnStart">Start GPS</button>
+          <button class="danger" id="btnStop" disabled>Stop</button>
+          <button id="btnUnits">Units: knots</button>
+        </div>
+
+        <div class="statusRow" id="statusRow">
+          <span id="statusText">Press <b>Start GPS</b>. On phones, you must allow location permission. Best results outdoors.</span>
+        </div>
+
+        <div class="note">
+          Tip: Some devices don’t report GPS speed reliably at very low speeds; this app falls back to calculating speed from movement.
+        </div>
+      </div>
+
+      <div class="note" style="margin-top:12px;">
+        © 2026 Boater’s Aid / CanBoat tools — GPS speed depends on device quality and sky view.
+      </div>
+    </main>
+  </div>
+
+<script>
+(() => {
+  // Dial config
+  const DIAL = {
+    maxKnots: 40,        // full scale on the dial
+    angleStart: -140,    // degrees
+    angleEnd: 140,
+    // SVG layout
+    cx: 100, cy: 100,
+    rTickOuter: 86,
+    rTickInnerMinor: 76,
+    rTickInnerMajor: 70,
+    rLabel: 56
+  };
+
+  const elNeedleGroup = document.getElementById('needleGroup');
+  const elTicks = document.getElementById('dialTicks');
+  const elSpeed = document.getElementById('speedVal');
+  const elUnit = document.getElementById('unitLabel');
+  const elAcc = document.getElementById('accVal');
+  const elFix = document.getElementById('fixVal');
+  const elSrc = document.getElementById('srcVal');
+  const elMode = document.getElementById('modeBadge');
+  const elStatus = document.getElementById('statusText');
+  const elStart = document.getElementById('btnStart');
+  const elStop = document.getElementById('btnStop');
+  const elUnitsBtn = document.getElementById('btnUnits');
+
+  // Units
+  const UNITS = [
+    { key: "knots", label: "knots", fromMps: (mps)=> mps * 1.943844492 },
+    { key: "kmh",   label: "km/h",  fromMps: (mps)=> mps * 3.6 },
+    { key: "mph",   label: "mph",   fromMps: (mps)=> mps * 2.236936292 }
+  ];
+  let unitIndex = 0;
+
+  // Watch state
+  let watchId = null;
+  let lastFix = null; // {lat, lon, t, acc}
+  let lastSpeedMps = 0;
+
+  // Helpers
+  const toRad = d => d * Math.PI / 180;
+
+  function mapKnotsToAngle(knots){
+    const clamped = Math.max(0, Math.min(DIAL.maxKnots, knots));
+    const p = clamped / DIAL.maxKnots;
+    return DIAL.angleStart + p * (DIAL.angleEnd - DIAL.angleStart);
+  }
+
+  function polar(cx, cy, r, angleDeg){
+    // 0deg at top, clockwise
+    const a = toRad(angleDeg - 90);
+    return { x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r };
+  }
+
+  function line(x1,y1,x2,y2, cls){
+    const L = document.createElementNS("http://www.w3.org/2000/svg","line");
+    L.setAttribute("x1", x1); L.setAttribute("y1", y1);
+    L.setAttribute("x2", x2); L.setAttribute("y2", y2);
+    L.setAttribute("class", cls);
+    return L;
+  }
+
+  function text(x,y,str){
+    const T = document.createElementNS("http://www.w3.org/2000/svg","text");
+    T.setAttribute("x", x);
+    T.setAttribute("y", y);
+    T.setAttribute("class", "label");
+    T.textContent = str;
+    return T;
+  }
+
+  function buildDial(){
+    elTicks.innerHTML = "";
+    const max = DIAL.maxKnots;
+
+    // Minor every 1, major every 5, labels at 5
+    for (let k=0; k<=max; k++){
+      const ang = mapKnotsToAngle(k);
+      const isMajor = (k % 5 === 0);
+
+      const pOuter = polar(DIAL.cx, DIAL.cy, DIAL.rTickOuter, ang);
+      const pInner = polar(
+        DIAL.cx, DIAL.cy,
+        isMajor ? DIAL.rTickInnerMajor : DIAL.rTickInnerMinor,
+        ang
+      );
+
+      elTicks.appendChild(
+        line(pInner.x, pInner.y, pOuter.x, pOuter.y, isMajor ? "tickMajor" : "tickMinor")
+      );
+
+      if (isMajor){
+        const pLab = polar(DIAL.cx, DIAL.cy, DIAL.rLabel, ang);
+        elTicks.appendChild(text(pLab.x, pLab.y, String(k)));
+      }
+    }
+
+    // set needle to 0
+    setNeedleByKnots(0);
+  }
+
+  function setNeedleByKnots(knots){
+    const ang = mapKnotsToAngle(knots);
+    elNeedleGroup.setAttribute("transform", `rotate(${ang} ${DIAL.cx} ${DIAL.cy})`);
+  }
+
+  function setStatus(kind, msg){
+    const row = document.getElementById('statusRow');
+    row.classList.remove('ok','warn','bad');
+    if (kind) row.classList.add(kind);
+    elStatus.innerHTML = msg;
+  }
+
+  function setMode(running){
+    elMode.textContent = `Mode: ${running ? "RUNNING" : "STOPPED"}`;
+  }
+
+  function updateUIFromSpeedMps(mps, sourceText){
+    lastSpeedMps = mps;
+    const u = UNITS[unitIndex];
+    const val = u.fromMps(mps);
+
+    elSpeed.textContent = (isFinite(val) ? val : 0).toFixed(1);
+    elUnit.textContent = u.label;
+    elSrc.textContent = sourceText;
+
+    const knots = UNITS[0].fromMps(mps);
+    setNeedleByKnots(knots);
+  }
+
+  function formatFixTime(ts){
+    if (!ts) return "—";
+    const d = new Date(ts);
+    return d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit", second:"2-digit"});
+  }
+
+  // Haversine distance in meters
+  function haversineMeters(lat1, lon1, lat2, lon2){
+    const R = 6371000;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat/2)**2 +
+      Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLon/2)**2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+    return R * c;
+  }
+
+  function startGPS(){
+    if (!("geolocation" in navigator)){
+      setStatus("bad", "This browser/device does not support GPS (geolocation).");
+      return;
+    }
+    if (watchId !== null) return;
+
+    setMode(true);
+    elStart.disabled = true;
+    elStop.disabled = false;
+    setStatus("warn", "Starting GPS… waiting for a good fix. Try outdoors with clear sky.");
+
+    watchId = navigator.geolocation.watchPosition(
+      (pos) => {
+        const c = pos.coords;
+        const t = pos.timestamp;
+
+        const acc = (c.accuracy != null) ? Math.round(c.accuracy) : null;
+        elAcc.textContent = acc != null ? `${acc} m` : "—";
+        elFix.textContent = formatFixTime(t);
+
+        let usedSource = "";
+        let speedMps = null;
+
+        // Prefer reported speed
+        if (typeof c.speed === "number" && isFinite(c.speed) && c.speed >= 0){
+          speedMps = c.speed;
+          usedSource = "GPS speed";
+        }
+
+        // Fallback: compute speed from movement
+        if ((speedMps == null || speedMps === 0) && lastFix){
+          const dt = (t - lastFix.t) / 1000;
+          if (dt > 0.6){
+            const d = haversineMeters(lastFix.lat, lastFix.lon, c.latitude, c.longitude);
+            const calc = d / dt;
+
+            // light smoothing to reduce jitter
+            speedMps = 0.70 * lastSpeedMps + 0.30 * calc;
+            usedSource = "Calculated";
+          }
+        }
+
+        if (speedMps == null){
+          speedMps = lastSpeedMps || 0;
+          usedSource = "—";
+        }
+
+        lastFix = { lat:c.latitude, lon:c.longitude, t, acc:acc ?? null };
+
+        updateUIFromSpeedMps(speedMps, usedSource);
+
+        if (acc != null && acc <= 15){
+          setStatus("ok", `GPS OK. Accuracy <span class="mono">${acc} m</span>. Speed updates live.`);
+        } else if (acc != null && acc <= 50){
+          setStatus("warn", `GPS fair. Accuracy <span class="mono">${acc} m</span>. Move steadily for best speed.`);
+        } else {
+          setStatus("warn", `GPS weak. Accuracy <span class="mono">${acc ?? "—"} m</span>. Try outdoors / away from buildings.`);
+        }
+      },
+      (err) => {
+        const msg =
+          err.code === 1 ? "Location permission denied. Please allow location access in your browser settings." :
+          err.code === 2 ? "Position unavailable. GPS may be off or blocked. Try outdoors." :
+          err.code === 3 ? "Timeout getting GPS fix. Try again outdoors." :
+          "GPS error.";
+        setStatus("bad", msg);
+        stopGPS(true);
+      },
+      { enableHighAccuracy:true, maximumAge:500, timeout:15000 }
+    );
+  }
+
+  function stopGPS(silent=false){
+    if (watchId !== null){
+      navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+    }
+    setMode(false);
+    elStart.disabled = false;
+    elStop.disabled = true;
+    if (!silent) setStatus(null, "Stopped. Press <b>Start GPS</b> to begin again.");
+  }
+
+  function cycleUnits(){
+    unitIndex = (unitIndex + 1) % UNITS.length;
+    const u = UNITS[unitIndex];
+    elUnitsBtn.textContent = `Units: ${u.key}`;
+    updateUIFromSpeedMps(lastSpeedMps || 0, elSrc.textContent || "—");
+  }
+
+  // Wire up
+  elStart.addEventListener('click', startGPS);
+  elStop.addEventListener('click', () => stopGPS(false));
+  elUnitsBtn.addEventListener('click', cycleUnits);
+
+  // Init
+  buildDial();
+  elUnitsBtn.textContent = `Units: ${UNITS[unitIndex].key}`;
+  setMode(false);
+})();
+</script>
+</body>
+</html>
