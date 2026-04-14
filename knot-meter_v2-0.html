@@ -1,0 +1,749 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>GPS Rotary Speed Dial</title>
+  <meta name="theme-color" content="#0b3d91" />
+  <style>
+    :root{
+      --bg:#0b1220;
+      --card:#111c2f;
+      --text:#e5e7eb;
+      --muted:#94a3b8;
+      --accent:#22e7ff;
+      --border:rgba(148,163,184,.22);
+      --good:#22c55e;
+      --warn:#f59e0b;
+      --bad:#ef4444;
+      --idle:#6b7280;
+    }
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:radial-gradient(1200px 800px at 20% 0%, #0d1a32 0%, var(--bg) 55%);
+      color:var(--text);
+      font-family:Arial, Helvetica, sans-serif;
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+      padding:14px;
+      box-sizing:border-box;
+    }
+    .app{
+      width:min(560px, 100%);
+      background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+      border:1px solid var(--border);
+      border-radius:18px;
+      overflow:hidden;
+    }
+    header{
+      padding:12px 14px;
+      border-bottom:1px solid var(--border);
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      background:rgba(0,0,0,.12);
+    }
+    .title{
+      font-weight:700;
+      letter-spacing:.2px;
+      display:flex;
+      align-items:center;
+      gap:10px;
+    }
+    .badge{
+      font-size:12px;
+      color:var(--muted);
+      padding:4px 8px;
+      border:1px solid var(--border);
+      border-radius:999px;
+    }
+    main{padding:14px}
+    .panel{
+      background:var(--card);
+      border:1px solid var(--border);
+      border-radius:16px;
+      padding:14px;
+    }
+    .dial{
+      width:min(380px, 100%);
+      aspect-ratio:1/1;
+      margin:0 auto;
+      border-radius:50%;
+      background:
+        radial-gradient(circle at 50% 42%, rgba(255,255,255,.07) 0%, rgba(255,255,255,.02) 48%, rgba(0,0,0,.22) 100%);
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .dial svg{width:100%;height:100%;display:block}
+    .tickMinor{stroke:rgba(255,255,255,.78);stroke-width:1.6;stroke-linecap:round}
+    .tickMajor{stroke:rgba(255,255,255,.95);stroke-width:2.8;stroke-linecap:round}
+    .label{
+      fill:rgba(255,255,255,.90);
+      font-size:11px;
+      font-weight:700;
+      text-anchor:middle;
+      dominant-baseline:middle;
+      user-select:none;
+    }
+    .needleGlow{
+      stroke:rgba(34,231,255,.25);
+      stroke-width:10;
+      stroke-linecap:round;
+    }
+    .needle{
+      stroke:var(--accent);
+      stroke-width:4.2;
+      stroke-linecap:round;
+    }
+    .hubOuter{fill:#e5e7eb}
+    .hubInner{fill:#10203a}
+    .readout{
+      text-align:center;
+      margin-top:10px;
+    }
+    .speed{
+      font-size:56px;
+      font-weight:800;
+      line-height:1;
+    }
+    .unit{
+      font-size:18px;
+      color:var(--muted);
+      margin-top:4px;
+    }
+    .sub{
+      margin-top:10px;
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      justify-content:center;
+      font-size:12px;
+      color:var(--muted);
+    }
+    .pill{
+      border:1px solid var(--border);
+      border-radius:999px;
+      padding:6px 10px;
+      background:rgba(0,0,0,.12);
+    }
+    .motionPill{
+      display:flex;
+      align-items:center;
+      gap:8px;
+    }
+    .motionLight{
+      width:10px;
+      height:10px;
+      border-radius:50%;
+      background:var(--idle);
+      display:inline-block;
+    }
+    .motionLight.active{
+      background:var(--good);
+      box-shadow:0 0 10px rgba(34,197,94,.75);
+    }
+    .tripPanel{
+      margin-top:14px;
+      border:1px solid var(--border);
+      border-radius:14px;
+      background:rgba(0,0,0,.14);
+      padding:12px;
+    }
+    .tripTitle{
+      text-align:center;
+      font-size:12px;
+      color:var(--muted);
+      font-weight:700;
+      letter-spacing:.9px;
+      margin-bottom:10px;
+    }
+    .tripGrid{
+      display:grid;
+      grid-template-columns:repeat(3, 1fr);
+      gap:10px;
+    }
+    .tripCell{
+      border:1px solid var(--border);
+      border-radius:12px;
+      background:rgba(255,255,255,.02);
+      padding:10px 8px;
+      text-align:center;
+    }
+    .tripLabel{
+      font-size:11px;
+      color:var(--muted);
+      margin-bottom:6px;
+    }
+    .tripValue{
+      font-size:18px;
+      font-weight:800;
+      line-height:1.1;
+    }
+    .controls{
+      display:flex;
+      flex-wrap:wrap;
+      gap:10px;
+      justify-content:center;
+      margin-top:14px;
+    }
+    button{
+      min-width:96px;
+      padding:10px 12px;
+      border-radius:12px;
+      border:1px solid var(--border);
+      background:#f3f4f6;
+      color:#111827;
+      font-size:14px;
+      cursor:pointer;
+    }
+    button.primary{
+      background:linear-gradient(180deg, rgba(34,231,255,.28), rgba(34,231,255,.18));
+      color:#fff;
+      border-color:rgba(34,231,255,.45);
+    }
+    button.danger{
+      background:linear-gradient(180deg, rgba(239,68,68,.22), rgba(239,68,68,.12));
+      color:#fff;
+      border-color:rgba(239,68,68,.42);
+    }
+    .status{
+      margin-top:14px;
+      border:1px dashed rgba(148,163,184,.35);
+      border-radius:12px;
+      padding:12px;
+      color:var(--muted);
+      font-size:12px;
+      background:rgba(0,0,0,.10);
+      text-align:center;
+    }
+    .footer{
+      margin-top:12px;
+      text-align:center;
+      font-size:12px;
+      color:var(--muted);
+    }
+    @media (max-width: 480px){
+      .tripGrid{grid-template-columns:1fr}
+      button{min-width:84px}
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title">
+        <span>GPS Rotary Speed Dial</span>
+        <span class="badge" id="modeBadge">Mode: STOPPED</span>
+      </div>
+      <span class="badge">v2.0</span>
+    </header>
+
+    <main>
+      <div class="panel">
+        <div class="dial" aria-label="Speed dial">
+          <svg viewBox="0 0 200 200" role="img" aria-label="Speed dial">
+            <g id="dialTicks"></g>
+            <g id="needleGroup" transform="rotate(-140 100 100)">
+              <line class="needleGlow" x1="100" y1="112" x2="100" y2="38"></line>
+              <line class="needle" x1="100" y1="112" x2="100" y2="38"></line>
+            </g>
+            <circle class="hubOuter" cx="100" cy="100" r="7"></circle>
+            <circle class="hubInner" cx="100" cy="100" r="3.8"></circle>
+          </svg>
+        </div>
+
+        <div class="readout">
+          <div class="speed" id="speedVal">0.0</div>
+          <div class="unit" id="unitLabel">knots</div>
+
+          <div class="sub">
+            <div class="pill">Accuracy: <span id="accVal">—</span></div>
+            <div class="pill">Fix: <span id="fixVal">—</span></div>
+            <div class="pill">Source: <span id="srcVal">—</span></div>
+            <div class="pill motionPill">
+              <span class="motionLight" id="motionLight"></span>
+              <span id="motionText">No motion</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="tripPanel">
+          <div class="tripTitle">TRIP PANEL</div>
+          <div class="tripGrid">
+            <div class="tripCell">
+              <div class="tripLabel">Distance</div>
+              <div class="tripValue" id="tripDistance">0.00 nm</div>
+            </div>
+            <div class="tripCell">
+              <div class="tripLabel">Average Speed</div>
+              <div class="tripValue" id="tripAverage">0.0 knots</div>
+            </div>
+            <div class="tripCell">
+              <div class="tripLabel">Elapsed Time</div>
+              <div class="tripValue" id="tripElapsed">00:00:00</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button class="primary" id="btnStart">Start</button>
+          <button class="danger" id="btnStop" disabled>Stop</button>
+          <button id="btnUnits">Units: knots</button>
+          <button id="btnResetTrip">Reset</button>
+          <button id="btnSaveTrip">Save</button>
+        </div>
+
+        <div class="status" id="statusText">
+          Press <b>Start</b>. The gauge stays at zero until GPS motion is detected.
+        </div>
+      </div>
+
+      <div class="footer">© 2026 Glen Carruthers. All rights reserved.</div>
+    </main>
+  </div>
+
+<script>
+(() => {
+  const DIAL = {
+    angleStart: -140,
+    angleEnd: 140,
+    cx: 100,
+    cy: 100,
+    rTickOuter: 86,
+    rTickInnerMinor: 76,
+    rTickInnerMajor: 70,
+    rLabel: 57
+  };
+
+  const UNITS = [
+    {
+      key: "knots",
+      label: "knots",
+      max: 50,
+      major: 5,
+      minor: 1,
+      fromMps: mps => mps * 1.943844492,
+      distanceLabel: "nm",
+      distanceFromMeters: m => m / 1852
+    },
+    {
+      key: "kmh",
+      label: "km/h",
+      max: 130,
+      major: 10,
+      minor: 5,
+      fromMps: mps => mps * 3.6,
+      distanceLabel: "km",
+      distanceFromMeters: m => m / 1000
+    },
+    {
+      key: "mph",
+      label: "mph",
+      max: 80,
+      major: 5,
+      minor: 1,
+      fromMps: mps => mps * 2.236936292,
+      distanceLabel: "mi",
+      distanceFromMeters: m => m / 1609.344
+    }
+  ];
+
+  const MOTION_SPEED_THRESHOLD_MPS = 0.45;
+  const MOTION_DISTANCE_THRESHOLD_M = 4;
+  const MAX_REASONABLE_SEGMENT_M = 250;
+
+  let unitIndex = 0;
+  let watchId = null;
+  let lastFix = null;
+  let lastSpeedMps = 0;
+  let motionDetected = false;
+
+  let tripDistanceMeters = 0;
+  let tripStartTime = null;
+  let tripElapsedMs = 0;
+  let tripTimer = null;
+
+  const elNeedleGroup = document.getElementById("needleGroup");
+  const elTicks = document.getElementById("dialTicks");
+  const elSpeed = document.getElementById("speedVal");
+  const elUnit = document.getElementById("unitLabel");
+  const elAcc = document.getElementById("accVal");
+  const elFix = document.getElementById("fixVal");
+  const elSrc = document.getElementById("srcVal");
+  const elMode = document.getElementById("modeBadge");
+  const elStatus = document.getElementById("statusText");
+  const elStart = document.getElementById("btnStart");
+  const elStop = document.getElementById("btnStop");
+  const elUnitsBtn = document.getElementById("btnUnits");
+  const elResetTrip = document.getElementById("btnResetTrip");
+  const elSaveTrip = document.getElementById("btnSaveTrip");
+  const elTripDistance = document.getElementById("tripDistance");
+  const elTripAverage = document.getElementById("tripAverage");
+  const elTripElapsed = document.getElementById("tripElapsed");
+  const elMotionLight = document.getElementById("motionLight");
+  const elMotionText = document.getElementById("motionText");
+
+  const toRad = d => d * Math.PI / 180;
+
+  function currentUnit() {
+    return UNITS[unitIndex];
+  }
+
+  function setMotionIndicator(active){
+    motionDetected = active;
+    elMotionLight.classList.toggle("active", active);
+    elMotionText.textContent = active ? "Motion detected" : "No motion";
+  }
+
+  function setMode(running){
+    elMode.textContent = running ? "Mode: RUNNING" : "Mode: STOPPED";
+  }
+
+  function setStatus(msg){
+    elStatus.innerHTML = msg;
+  }
+
+  function mapSpeedToAngle(speed){
+    const u = currentUnit();
+    const clamped = Math.max(0, Math.min(u.max, speed));
+    const p = clamped / u.max;
+    return DIAL.angleStart + p * (DIAL.angleEnd - DIAL.angleStart);
+  }
+
+  function polar(cx, cy, r, angleDeg){
+    const a = toRad(angleDeg - 90);
+    return {
+      x: cx + Math.cos(a) * r,
+      y: cy + Math.sin(a) * r
+    };
+  }
+
+  function makeLine(x1, y1, x2, y2, cls){
+    const n = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    n.setAttribute("x1", x1);
+    n.setAttribute("y1", y1);
+    n.setAttribute("x2", x2);
+    n.setAttribute("y2", y2);
+    n.setAttribute("class", cls);
+    return n;
+  }
+
+  function makeText(x, y, value){
+    const n = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    n.setAttribute("x", x);
+    n.setAttribute("y", y);
+    n.setAttribute("class", "label");
+    n.textContent = value;
+    return n;
+  }
+
+  function buildDial(){
+    elTicks.innerHTML = "";
+    const u = currentUnit();
+
+    for (let v = 0; v <= u.max; v += u.minor) {
+      const angle = mapSpeedToAngle(v);
+      const isMajor = (v % u.major === 0);
+
+      const pOuter = polar(DIAL.cx, DIAL.cy, DIAL.rTickOuter, angle);
+      const pInner = polar(DIAL.cx, DIAL.cy, isMajor ? DIAL.rTickInnerMajor : DIAL.rTickInnerMinor, angle);
+      elTicks.appendChild(makeLine(pInner.x, pInner.y, pOuter.x, pOuter.y, isMajor ? "tickMajor" : "tickMinor"));
+
+      if (isMajor) {
+        const pLabel = polar(DIAL.cx, DIAL.cy, DIAL.rLabel, angle);
+        elTicks.appendChild(makeText(pLabel.x, pLabel.y, String(v)));
+      }
+    }
+
+    updateNeedleFromMps(lastSpeedMps || 0);
+  }
+
+  function setNeedleByDisplaySpeed(displaySpeed){
+    const ang = mapSpeedToAngle(displaySpeed);
+    elNeedleGroup.setAttribute("transform", `rotate(${ang} ${DIAL.cx} ${DIAL.cy})`);
+  }
+
+  function updateNeedleFromMps(mps){
+    const displaySpeed = currentUnit().fromMps(mps);
+    setNeedleByDisplaySpeed(displaySpeed);
+  }
+
+  function formatFixTime(ts){
+    if (!ts) return "—";
+    return new Date(ts).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit"
+    });
+  }
+
+  function formatElapsed(ms){
+    const totalSeconds = Math.floor(ms / 1000);
+    const hrs = Math.floor(totalSeconds / 3600);
+    const mins = Math.floor((totalSeconds % 3600) / 60);
+    const secs = totalSeconds % 60;
+    return [
+      String(hrs).padStart(2, "0"),
+      String(mins).padStart(2, "0"),
+      String(secs).padStart(2, "0")
+    ].join(":");
+  }
+
+  function haversineMeters(lat1, lon1, lat2, lon2){
+    const R = 6371000;
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) ** 2;
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  }
+
+  function updateTripPanel(){
+    const u = currentUnit();
+    const distanceValue = u.distanceFromMeters(tripDistanceMeters);
+    const avgMps = tripElapsedMs > 0 ? tripDistanceMeters / (tripElapsedMs / 1000) : 0;
+
+    elTripDistance.textContent = `${distanceValue.toFixed(2)} ${u.distanceLabel}`;
+    elTripAverage.textContent = `${u.fromMps(avgMps).toFixed(1)} ${u.label}`;
+    elTripElapsed.textContent = formatElapsed(tripElapsedMs);
+  }
+
+  function updateUIFromSpeedMps(mps, sourceText){
+    lastSpeedMps = mps;
+    const u = currentUnit();
+    elSpeed.textContent = u.fromMps(mps).toFixed(1);
+    elUnit.textContent = u.label;
+    elSrc.textContent = sourceText;
+    updateNeedleFromMps(mps);
+    updateTripPanel();
+  }
+
+  function startTripTimer(){
+    stopTripTimer();
+    tripTimer = setInterval(() => {
+      if (tripStartTime != null) {
+        tripElapsedMs = Date.now() - tripStartTime;
+        updateTripPanel();
+      }
+    }, 1000);
+  }
+
+  function stopTripTimer(){
+    if (tripTimer) {
+      clearInterval(tripTimer);
+      tripTimer = null;
+    }
+  }
+
+  function timestampForFile(){
+    const d = new Date();
+    return [
+      d.getFullYear(),
+      String(d.getMonth() + 1).padStart(2, "0"),
+      String(d.getDate()).padStart(2, "0")
+    ].join("") + "_" + [
+      String(d.getHours()).padStart(2, "0"),
+      String(d.getMinutes()).padStart(2, "0"),
+      String(d.getSeconds()).padStart(2, "0")
+    ].join("");
+  }
+
+  function startGPS(){
+    if (!("geolocation" in navigator)) {
+      setStatus("This browser does not support GPS geolocation.");
+      return;
+    }
+    if (watchId !== null) return;
+
+    if (tripStartTime == null) {
+      tripStartTime = Date.now() - tripElapsedMs;
+    }
+
+    startTripTimer();
+    setMode(true);
+    setMotionIndicator(false);
+    elStart.disabled = true;
+    elStop.disabled = false;
+    setStatus("Starting GPS… waiting for a good fix and real motion.");
+
+    watchId = navigator.geolocation.watchPosition(
+      pos => {
+        const c = pos.coords;
+        const t = pos.timestamp;
+        const acc = c.accuracy != null ? Math.round(c.accuracy) : null;
+
+        elAcc.textContent = acc != null ? `${acc} m` : "—";
+        elFix.textContent = formatFixTime(t);
+
+        let usedSource = "—";
+        let speedMps = 0;
+        let segmentMeters = 0;
+
+        if (lastFix) {
+          segmentMeters = haversineMeters(lastFix.lat, lastFix.lon, c.latitude, c.longitude);
+        }
+
+        const reasonableAccuracy = (acc == null || acc <= 50);
+        const segmentLooksReal =
+          segmentMeters >= MOTION_DISTANCE_THRESHOLD_M &&
+          segmentMeters < MAX_REASONABLE_SEGMENT_M &&
+          reasonableAccuracy;
+
+        if (typeof c.speed === "number" && isFinite(c.speed) && c.speed >= 0) {
+          if (c.speed >= MOTION_SPEED_THRESHOLD_MPS || segmentLooksReal) {
+            speedMps = c.speed;
+            usedSource = "GPS speed";
+          } else {
+            speedMps = 0;
+            usedSource = "Stationary";
+          }
+        }
+
+        if (speedMps === 0 && lastFix) {
+          const dt = (t - lastFix.t) / 1000;
+          if (dt > 0.6) {
+            const calc = segmentMeters / dt;
+            if (calc >= MOTION_SPEED_THRESHOLD_MPS && segmentLooksReal) {
+              speedMps = (0.70 * lastSpeedMps) + (0.30 * calc);
+              usedSource = "Calculated";
+            } else {
+              speedMps = 0;
+              usedSource = "Stationary";
+            }
+          }
+        }
+
+        const movingNow = isFinite(speedMps) && speedMps >= MOTION_SPEED_THRESHOLD_MPS;
+
+        if (!movingNow) {
+          speedMps = 0;
+          usedSource = "Stationary";
+        }
+
+        setMotionIndicator(movingNow);
+
+        if (segmentLooksReal) {
+          tripDistanceMeters += segmentMeters;
+        }
+
+        lastFix = {
+          lat: c.latitude,
+          lon: c.longitude,
+          t,
+          acc
+        };
+
+        if (tripStartTime != null) {
+          tripElapsedMs = Date.now() - tripStartTime;
+        }
+
+        updateUIFromSpeedMps(speedMps, usedSource);
+
+        if (acc != null && acc <= 15) {
+          setStatus(movingNow
+            ? `GPS OK. Accuracy ${acc} m. Motion detected.`
+            : `GPS OK. Accuracy ${acc} m. Waiting for motion.`);
+        } else if (acc != null && acc <= 50) {
+          setStatus(movingNow
+            ? `GPS fair. Accuracy ${acc} m. Motion detected.`
+            : `GPS fair. Accuracy ${acc} m. Waiting for real motion.`);
+        } else {
+          setStatus(`GPS weak. Accuracy ${acc ?? "—"} m. Try outdoors / away from buildings.`);
+        }
+      },
+      err => {
+        const msg =
+          err.code === 1 ? "Location permission denied." :
+          err.code === 2 ? "Position unavailable." :
+          err.code === 3 ? "GPS timeout." :
+          "GPS error.";
+        stopGPS(true);
+        setStatus(msg);
+      },
+      {
+        enableHighAccuracy: true,
+        maximumAge: 500,
+        timeout: 15000
+      }
+    );
+  }
+
+  function stopGPS(silent = false){
+    if (watchId !== null) {
+      navigator.geolocation.clearWatch(watchId);
+      watchId = null;
+    }
+    stopTripTimer();
+    setMode(false);
+    setMotionIndicator(false);
+    elStart.disabled = false;
+    elStop.disabled = true;
+    if (!silent) setStatus("Stopped. Press Start to begin again.");
+  }
+
+  function cycleUnits(){
+    unitIndex = (unitIndex + 1) % UNITS.length;
+    const u = currentUnit();
+    elUnitsBtn.textContent = `Units: ${u.label}`;
+    elUnit.textContent = u.label;
+    buildDial();
+    updateUIFromSpeedMps(lastSpeedMps || 0, elSrc.textContent || "—");
+  }
+
+  function resetTrip(){
+    tripDistanceMeters = 0;
+    tripElapsedMs = 0;
+    tripStartTime = (watchId !== null) ? Date.now() : null;
+    lastFix = null;
+    lastSpeedMps = 0;
+    setMotionIndicator(false);
+    updateUIFromSpeedMps(0, "—");
+    setStatus("Trip reset.");
+  }
+
+  function saveTrip(){
+    const u = currentUnit();
+    const distanceValue = u.distanceFromMeters(tripDistanceMeters);
+    const avgMps = tripElapsedMs > 0 ? tripDistanceMeters / (tripElapsedMs / 1000) : 0;
+    const avgDisplay = u.fromMps(avgMps);
+    const now = new Date();
+
+    const csv = [
+      "date_time,elapsed_time,distance,distance_unit,average_speed,speed_unit,current_speed,source,motion_detected",
+      `"${now.toLocaleString()}","${formatElapsed(tripElapsedMs)}","${distanceValue.toFixed(2)}","${u.distanceLabel}","${avgDisplay.toFixed(1)}","${u.label}","${elSpeed.textContent}","${elSrc.textContent}","${motionDetected ? "yes" : "no"}"`
+    ].join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `gps_trip_${timestampForFile()}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    setStatus("Trip saved as CSV.");
+  }
+
+  elStart.addEventListener("click", startGPS);
+  elStop.addEventListener("click", () => stopGPS(false));
+  elUnitsBtn.addEventListener("click", cycleUnits);
+  elResetTrip.addEventListener("click", resetTrip);
+  elSaveTrip.addEventListener("click", saveTrip);
+
+  buildDial();
+  elUnitsBtn.textContent = `Units: ${currentUnit().label}`;
+  elUnit.textContent = currentUnit().label;
+  updateTripPanel();
+  setMotionIndicator(false);
+  setMode(false);
+})();
+</script>
+</body>
+</html>
